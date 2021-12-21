@@ -1,0 +1,17 @@
+main.c:154:6:HAL_SPI_TxCpltCallback	16	static
+main.c:165:9:map	16	static
+main.c:169:10:getTemp	8	static
+main.c:178:5:main	8	static
+main.c:293:6:SystemClock_Config	96	static
+main.c:341:13:MX_ADC1_Init	32	static
+main.c:397:13:MX_SPI2_Init	8	static
+main.c:435:13:MX_DMA_Init	16	static
+main.c:453:13:MX_GPIO_Init	40	static
+main.c:519:6:tempMeas	32	static
+main.c:564:6:ironControl	32	static
+main.c:608:6:screenTask	32	static
+main.c:646:6:controlTask	16	static
+main.c:695:6:zeroCrossing	16	static
+main.c:725:6:timeHandler	16	static
+main.c:765:6:HAL_TIM_PeriodElapsedCallback	16	static
+main.c:782:6:Error_Handler	4	static,ignoring_inline_asm

@@ -51,6 +51,8 @@
 #define PID_TAU 0.02f
 #define PID_SAMPLE_TIME 0.12f
 
+#define SLEEP_TEMP 150
+
 
 
 /* USER CODE END PD */
@@ -122,6 +124,7 @@ bool canSwitch = false;
 bool heaterOn = false;
 bool measuringTemp = false;
 bool measureInProgress = false;
+bool sleepMode = false;
 uint16_t currentTemp = 0;
 
 uint16_t powerLevel = 0;
@@ -566,7 +569,7 @@ void ironControl(void *argument)
   /* USER CODE BEGIN ironControl */
   /* Infinite loop */
 	for (;;) {
-		powerLevel = (uint16_t)PID_update(&ironPID, setTemp, getTemp());
+		powerLevel = (uint16_t)PID_update(&ironPID, sleepMode ? SLEEP_TEMP : setTemp, getTemp());
 
 		if (measuringTemp) {
 			heaterOn = false;
@@ -620,13 +623,21 @@ void screenTask(void *argument)
 	  ILI9163_fillRect(0,  ILI9163_HEIGHT - 20, map(powerLevel, 100, ILI9163_WIDTH), ILI9163_HEIGHT, ORANGE);
 	  ILI9163_drawRect(0,  ILI9163_HEIGHT - 20, ILI9163_WIDTH, ILI9163_HEIGHT, 1, ORANGE);
 
+
+	  if (sleepMode) {
+		  ILI9163_fillRect(0,  0, (4 * ILI9163_WIDTH) / 10, 28, GREEN);
+		  ILI9163_drawStringF(4, 5, Font_11x18, WHITE, "%s", "SLEEP");
+	  }
+
+
+
 	  ILI9163_drawStringF(ILI9163_WIDTH - 80, 10, Font_7x10, BLACK, "Set: %hu C", setTemp);
 
-	  ILI9163_drawStringF(80, 80, Font_7x10, BLACK, "%humV", currentTemp * 1000 / 1241);
-	  ILI9163_drawStringF(80, 60, Font_7x10, BLACK, "%hu%", powerLevel);
-	  ILI9163_drawStringF(100, 60, Font_7x10, BLACK, "%hu%", (powerLevel / 10)*10);
+//	  ILI9163_drawStringF(80, 80, Font_7x10, BLACK, "%humV", currentTemp * 1000 / 1241);
+//	  ILI9163_drawStringF(80, 60, Font_7x10, BLACK, "%hu%", powerLevel);
+//	  ILI9163_drawStringF(100, 60, Font_7x10, BLACK, "%hu%", (powerLevel / 10)*10);
 
-	  ILI9163_drawStringF(10, 80, Font_16x26, BLACK, "%huC", getTemp());
+	  ILI9163_drawStringF(45, 55, Font_16x26, BLACK, "%huC", getTemp());
 
 
 	  ILI9163_render();
@@ -698,6 +709,11 @@ void zeroCrossing(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) == GPIO_PIN_RESET) {
+		  sleepMode = true;
+	  } else {
+		  sleepMode = false;
+	  }
 //	  if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_5) == GPIO_PIN_SET) {
 //		  // Can switch here
 //		  canSwitch = true;
@@ -728,6 +744,9 @@ void timeHandler(void *argument)
   /* Infinite loop */
   for(;;)
   {
+
+	  //PB10
+
 //	  measuringTemp = true;
 //	  uint8_t distance = 100;
 //

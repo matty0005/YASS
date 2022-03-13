@@ -53,6 +53,7 @@
 
 #define SLEEP_TEMP 150
 
+#define SAFETY_COUNTER 5
 
 
 /* USER CODE END PD */
@@ -79,6 +80,13 @@ const osThreadAttr_t tempMeasure_attributes = {
 osThreadId_t ironControllHandle;
 const osThreadAttr_t ironControll_attributes = {
   .name = "ironControll",
+  .stack_size = 128 * 8,
+  .priority = (osPriority_t) osPriorityLow,
+};
+
+osThreadId_t safetyCutoffHandle;
+const osThreadAttr_t safetyCutoff_attributes = {
+  .name = "safetyCutoff",
   .stack_size = 128 * 8,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -126,6 +134,8 @@ bool measuringTemp = false;
 bool measureInProgress = false;
 bool sleepMode = false;
 uint16_t currentTemp = 0;
+uint16_t lastTemp = 0;
+
 
 uint16_t powerLevel = 0;
 
@@ -143,6 +153,7 @@ static void MX_SPI2_Init(void);
 static void MX_DMA_Init(void);
 void tempMeas(void *argument);
 void ironControl(void *argument);
+void safetyCutoff(void *argument);
 void screenTask(void *argument);
 void controlTask(void *argument);
 void zeroCrossing(void *argument);
@@ -253,6 +264,9 @@ int main(void)
 
   /* creation of ironControll */
   ironControllHandle = osThreadNew(ironControl, NULL, &ironControll_attributes);
+
+  safetyCutoffHandle = osThreadNew(safetyCutoff, NULL, &safetyCutoff_attributes);
+
 
   /* creation of screen */
   screenHandle = osThreadNew(screenTask, NULL, &screen_attributes);
@@ -571,12 +585,14 @@ void ironControl(void *argument)
 	for (;;) {
 		powerLevel = (uint16_t)PID_update(&ironPID, sleepMode ? SLEEP_TEMP : setTemp, getTemp());
 
+		// Turn off heater if measuring temperature
 		if (measuringTemp) {
 			heaterOn = false;
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 			osDelay(1);
 		} else {
 
+			// Wait for zero crossing
 			while (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_5) != GPIO_PIN_SET) {
 				;
 			}
@@ -600,6 +616,61 @@ void ironControl(void *argument)
 	}
   /* USER CODE END ironControl */
 }
+
+
+/* USER CODE BEGIN Header_safetyCutoff */
+/**
+* @brief Function implementing the safetyCutoff thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_safetyCutoff */
+void safetyCutoff(void *argument)
+{
+  /* USER CODE BEGIN ironControl */
+  /* Infinite loop */
+	for (;;) {
+
+
+		// If heater is on at full power for over a second without a temperature change....
+
+		if (powerLevel < 90) { // full power >= 90
+			osDelay(100);
+			continue;
+		}
+
+		// Power level is over 90%
+		lastTemp =  getTemp();
+		osDelay(50);
+
+		// Check to make sure temp is changing
+		uint8_t sameCounter = 0;
+
+		for (uint8_t i = 0; i < SAFETY_COUNTER; i++) {
+
+			if (abs(lastTemp - getTemp()) <= 1 && powerLevel >= 90) {
+				sameCounter++;
+			}
+
+			lastTemp =  getTemp();
+			osDelay(100);
+		}
+
+		// reset the MCU if that is the case.
+		if (sameCounter >= (SAFETY_COUNTER - 1)) {
+			// turn off iron
+			heaterOn = false;
+			measuringTemp = true;
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
+			// Shutdown
+			HAL_NVIC_SystemReset();
+		}
+	}
+  /* USER CODE END ironControl */
+}
+
+
 
 /* USER CODE BEGIN Header_screenTask */
 /**

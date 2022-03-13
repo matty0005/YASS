@@ -157,7 +157,6 @@ void safetyCutoff(void *argument);
 void screenTask(void *argument);
 void controlTask(void *argument);
 void zeroCrossing(void *argument);
-void timeHandler(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -277,8 +276,6 @@ int main(void)
   /* creation of zeroCrossingTas */
   zeroCrossingTasHandle = osThreadNew(zeroCrossing, NULL, &zeroCrossingTas_attributes);
 
-  /* creation of measureTimerTas */
-  measureTimerTasHandle = osThreadNew(timeHandler, NULL, &measureTimerTas_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -581,6 +578,9 @@ void tempMeas(void *argument)
 void ironControl(void *argument)
 {
   /* USER CODE BEGIN ironControl */
+
+	// Add startup delay.
+	osDelay(3000);
   /* Infinite loop */
 	for (;;) {
 		powerLevel = (uint16_t)PID_update(&ironPID, sleepMode ? SLEEP_TEMP : setTemp, getTemp());
@@ -802,47 +802,6 @@ void zeroCrossing(void *argument)
   /* USER CODE END zeroCrossing */
 }
 
-/* USER CODE BEGIN Header_timeHandler */
-/**
-* @brief Function implementing the measureTimerTas thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_timeHandler */
-void timeHandler(void *argument)
-{
-  /* USER CODE BEGIN timeHandler */
-  /* Infinite loop */
-  for(;;)
-  {
-
-	  //PB10
-
-//	  measuringTemp = true;
-//	  uint8_t distance = 100;
-//
-////
-////	  if (getTemp() < (setTemp - distance)) {
-////		  delay = 500;
-////	  } else if (getTemp() < (setTemp - distance/2)) {
-////		  delay = 250;
-////	  } else if (getTemp() < (setTemp - distance/4)) {
-////		  delay = 75;
-////	  }
-////	  else if (getTemp() < (setTemp - distance/10)) {
-////		  delay = 50;
-////	  }
-//
-//	  osDelay(10);
-//
-//	  while(measureInProgress)
-//		  ;
-//
-//	  measuringTemp = false;
-	  osDelay(1);
-  }
-  /* USER CODE END timeHandler */
-}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

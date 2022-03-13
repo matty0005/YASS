@@ -581,6 +581,11 @@ void ironControl(void *argument)
 
 	// Add startup delay.
 	osDelay(3000);
+
+	// If temperature not reading correctly, reboot
+	if (getTemp() > 100) {
+		HAL_NVIC_SystemReset();
+	}
   /* Infinite loop */
 	for (;;) {
 		powerLevel = (uint16_t)PID_update(&ironPID, sleepMode ? SLEEP_TEMP : setTemp, getTemp());
